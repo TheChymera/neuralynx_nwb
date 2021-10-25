@@ -19,8 +19,9 @@ def reposit_data(
 		'DANDI Pilot',
 		],
 	experimenter='Manish Mohapatra',
-	experiment_description= '...',
+	experiment_description='...',
 	debug=True,
+	session_description='Extracellular ephys recording in the ventral Striatum',
 	):
 
 	data_dir = path.abspath(path.expanduser(data_dir))
@@ -98,7 +99,7 @@ def reposit_data(
 	# Session specific
 	session_metadata = dict(
 		session_id="%(subject_id)s-%(date)s" % filename_metadata,
-		session_description="Extracellular ephys recording in the left hemisphere of the nucleus accumbens",  # args[0] in nwbfile
+		session_description=session_description,
 		session_start_time=datetime.now(tzlocal()), # TEMP  # args[2] in nwbfile; TODO needs to be datetime
 	)
 	subject_metadata = dict(
