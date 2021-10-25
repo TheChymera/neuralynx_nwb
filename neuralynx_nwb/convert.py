@@ -64,14 +64,14 @@ def reposit_data(
 	# TODO: figure out what those timestamps in.
 	
 	
-
 	# Scans through Experimental Keys to extract relevant metadata for NWB file
 
 	## name of ExpKeys file
-	keys_name = session_data + '/'  + filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
+	keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
+	keys_path = path.join(keys_filename)
 
 	## read session ExpKeys
-	with open (keys_name, 'rt') as keys_file:
+	with open (keys_path, 'rt') as keys_file:
 		exp_keys = keys_file.read()
 
 	## list of metadata to extract and initialize dictionary
