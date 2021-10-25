@@ -1,4 +1,4 @@
-# Whole-Project Neuralynx to NWB converter
+# Whole-Project Neuralynx to NWB Converter
 
 This is a work in progress script to automate conversion for the “vStr_phase_stim” project by Manish Mohapatra of Dartmouth College.
 It is best used from the live `HEAD` as it is subject to active development.
@@ -7,7 +7,7 @@ It is best used from the live `HEAD` as it is subject to active development.
 
 Fetch the newest version git and install it using `setuptools` (this will also allow you to use changes you manually make to the repository files):
 
-```
+```shell
 git clone git@github.com:TheChymera/neuralynx_nwb.git
 cd neuralynx_nwb
 echo "export PATH=\$HOME/.local/bin/:\$PATH" >> ~/.bashrc
@@ -24,7 +24,7 @@ If you are getting a `Permission denied (publickey)` error upon trying to clone,
 
 The fundamental usage of the data conversion (assuming data is located under the default path) can be initiated via:
 
-```
+```shell
 python -c 'import convert; convert.reposit_data(debug=True)'
 ```
 
