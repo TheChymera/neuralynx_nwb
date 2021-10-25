@@ -24,8 +24,7 @@ def reposit_data(
 	):
 
 	data_dir = path.abspath(path.expanduser(data_dir))
-	session_data = path.join(data_dir,data_selection)
-	# session_data = '/Users/jimmiegmaz/Desktop/M040-2020-04-28-CDOD11' #for testing
+	session_data = path.normpath(path.join(data_dir,data_selection))
 
 	# Common lab wide metadata
 	lab_metadata = dict(
@@ -39,22 +38,25 @@ def reposit_data(
 		experiment_description=experiment_description,
 	)
 
-	# create a reader
-	#reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
-	reader = neo.io.NeuralynxIO(dirname=session_data, keep_original_times=False) # TODO: newer version should support: , keep_original_times=True)
-	reader.parse_header()
-	if debug:
-		print(reader)
+	# # create a reader
+	# #reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
+	# reader = neo.io.NeuralynxIO(dirname=session_data, keep_original_times=False) # TODO: newer version should support: , keep_original_times=True)
+	# reader.parse_header()
+	# if debug:
+	# 	print(reader)
 
-	# seg = reader.read_segment()
-	seg = reader.read()
+	# # seg = reader.read_segment()
+	# seg = reader.read()
 
+	# Old pattern from Yaro
+	#'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)-(?P<task>[A-Za-z]*)(?P<day_of_recording>[0-9]*)$',
+	print('Reading from: {}'.format(session_data))
 	filename_metadata = re.match(
-	'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)-(?P<task>[A-Za-z]*)(?P<day_of_recording>[0-9]*)$',
-	path.basename(session_data)
+		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
+		path.basename(session_data),
 		).groupdict()
 	if debug:
-		print(filename_metadata)
+		print('Acquired the following metadata from path: {}'.format(filename_metadata))
 
 	# Those time stamps are in sub-second and not the one we would want to the "session time"
 	# time.gmtime(reader.get_event_timestamps()[0][0])
@@ -72,11 +74,8 @@ def reposit_data(
 	with open (keys_name, 'rt') as keys_file:
 		exp_keys = keys_file.read()
 
-	## list of metadata to extract
+	## list of metadata to extract and initialize dictionary
 	metadata_list = ['ExpKeys.species','ExpKeys.hemisphere','ExpKeys.weight','ExpKeys.probeDepth','ExpKeys.target']
-	reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
-
-	# initialize metadata dictionary
 	metadata_keys = dict.fromkeys(metadata_list)
 
 	## extract metadata
