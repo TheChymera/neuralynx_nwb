@@ -1,13 +1,14 @@
 import numpy as np
-import pynwb
+import re
+import time
 from datetime import datetime
 from dateutil.tz import tzlocal
 from os import path
-from pynwb import NWBFile
-import re
-import time
 
 import neo
+import pynwb
+from pynwb import NWBFile
+from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 
 
 def reposit_data(
@@ -303,3 +304,26 @@ def reposit_data(
 	# in the NWBFile
 	with NWBHDF5IO('BCD_example.nwb', 'w') as io:
 		io.write(nwbfile)
+
+	# Optogenetic Stimulation:
+	ogs_site = OptogeneticStimulusSite(
+		name='TODO',
+		device='TODO',
+		description='TODO',
+		excitation_lambda='TODO',
+		location='TODO',
+		)
+	ogs_series = OptogeneticSeries(
+		name='TODO',
+		data='TODO',
+		site=ogs_site,
+		resolution='TODO',
+		conversion='TODO',
+		timestampe='TODO',
+		starting_time='TODO',
+		rate='TODO',
+		comments='TODO',
+		description='TODO',
+		control='TODO',
+		control_description='TODO',
+		)
