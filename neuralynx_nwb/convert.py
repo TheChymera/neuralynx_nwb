@@ -12,7 +12,7 @@ import neo
 
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
-	data_selection='vStr_phase_stim/M235/M235-2021-07-16/',
+	data_selection='_vStr_phase_stim/M235/M235-2021-07-16/',
 	lab_name='MVDMLab',
 	institution='Dartmouth College',
 	keywords=[
@@ -22,7 +22,6 @@ def reposit_data(
 	experiment_description= '...',
 	debug=True,
 	):
-	
 
 	data_dir = path.abspath(path.expanduser(data_dir))
 	session_data = path.join(data_dir,data_selection)
@@ -41,7 +40,8 @@ def reposit_data(
 	)
 
 	# create a reader
-	reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
+	#reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
+	reader = neo.io.NeuralynxIO(dirname=session_data, keep_original_times=False) # TODO: newer version should support: , keep_original_times=True)
 	reader.parse_header()
 	if debug:
 		print(reader)
@@ -74,6 +74,7 @@ def reposit_data(
 
 	## list of metadata to extract
 	metadata_list = ['ExpKeys.species','ExpKeys.hemisphere','ExpKeys.weight','ExpKeys.probeDepth','ExpKeys.target']
+	reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
 
 	# initialize metadata dictionary
 	metadata_keys = dict.fromkeys(metadata_list)
@@ -197,7 +198,7 @@ def reposit_data(
 
 	for s in range(reader.header['nb_segment'][0]):
 	#     for i, chl in enumerate(reader.header['unit_channels']):
-		if s is 0:
+		if s == 0:
 			for i, chl in enumerate(seg[0].segments[s].spiketrains):
 				spk_all.append([seg[0].segments[s].spiketrains[i].times])
 				
@@ -248,7 +249,7 @@ def reposit_data(
 			
 			for s in range(reader.header['nb_segment'][0]):
 				
-				if s is 0:
+				if s == 0:
 					
 					waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
 					
