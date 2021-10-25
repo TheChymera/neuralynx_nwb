@@ -18,7 +18,7 @@ def reposit_data(
 	keywords=[
 		'DANDI Pilot',
 		],
-	experimenter='Manish ...',
+	experimenter='Manish Mohapatra',
 	experiment_description= '...',
 	debug=True,
 	):
