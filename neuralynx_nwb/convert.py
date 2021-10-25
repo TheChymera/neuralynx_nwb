@@ -48,8 +48,6 @@ def reposit_data(
 	# # seg = reader.read_segment()
 	# seg = reader.read()
 
-	# Old pattern from Yaro
-	#'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)-(?P<task>[A-Za-z]*)(?P<day_of_recording>[0-9]*)$',
 	print('Reading from: {}'.format(session_data))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
@@ -70,25 +68,25 @@ def reposit_data(
 	keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
 	keys_path = path.join(keys_filename)
 
-	## read session ExpKeys
-	with open (keys_path, 'rt') as keys_file:
-		exp_keys = keys_file.read()
+	#  ## read session ExpKeys
+	#  with open (keys_path, 'rt') as keys_file:
+	#  	exp_keys = keys_file.read()
 
 	## list of metadata to extract and initialize dictionary
 	metadata_list = ['ExpKeys.species','ExpKeys.hemisphere','ExpKeys.weight','ExpKeys.probeDepth','ExpKeys.target']
 	metadata_keys = dict.fromkeys(metadata_list)
 
-	## extract metadata
-	for item in exp_keys.split("\n"):
-		for field in metadata_list:
-			if field in item:
-				metadata_keys[field] = re.search('(?<=\=)(.*?)(?=\;)', item).group(0).strip() 
-				metadata_keys[field] = re.sub('[^A-Za-z0-9]+', '', metadata_keys[field])
-				if debug:
-					print(metadata_keys[field])
-				
-	## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
-	## add filtering, individual tetrode depth, tetrode referencing
+	#  ## extract metadata
+	#  for item in exp_keys.split("\n"):
+	#  	for field in metadata_list:
+	#  		if field in item:
+	#  			metadata_keys[field] = re.search('(?<=\=)(.*?)(?=\;)', item).group(0).strip() 
+	#  			metadata_keys[field] = re.sub('[^A-Za-z0-9]+', '', metadata_keys[field])
+	#  			if debug:
+	#  				print(metadata_keys[field])
+	#  			
+	#  ## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
+	#  ## add filtering, individual tetrode depth, tetrode referencing
 
 	
 
@@ -154,68 +152,68 @@ def reposit_data(
 	if debug:
 		print(nwbfile.identifier)
 
-	# add electrode metadata
-	# create probe device
-	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
+	#  # add electrode metadata
+	#  # create probe device
+	#  device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
-	# for each channel on the probe
-	for chl in reader.header['unit_channels']:
-		
-		# get tetrode id
-		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
-		electrode_name = 'tetrode' + tetrode
-		
-		# get channel id
-		channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
-			   
-		if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
-		
-			description = electrode_name
-			location = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
-				'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+	#  # for each channel on the probe
+	#  for chl in reader.header['unit_channels']:
+	#  	
+	#  	# get tetrode id
+	#  	tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
+	#  	electrode_name = 'tetrode' + tetrode
+	#  	
+	#  	# get channel id
+	#  	channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
+	#  		   
+	#  	if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
+	#  	
+	#  		description = electrode_name
+	#  		location = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
+	#  			'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
 
-			electrode_group = nwbfile.create_electrode_group(electrode_name,
-															 description=description,
-															 location=location,
-															 device=device)
-			
-		# add channel to tetrode
-		nwbfile.add_electrode(id=int(channel),
-							x=-1.2, y=float(metadata_keys['ExpKeys.probeDepth']), z=-1.5,
-							location=metadata_keys['ExpKeys.target'], filtering='none',
-							imp = 0.0, group=nwbfile.electrode_groups[electrode_name])
+	#  		electrode_group = nwbfile.create_electrode_group(electrode_name,
+	#  														 description=description,
+	#  														 location=location,
+	#  														 device=device)
+	#  		
+	#  	# add channel to tetrode
+	#  	nwbfile.add_electrode(id=int(channel),
+	#  						x=-1.2, y=float(metadata_keys['ExpKeys.probeDepth']), z=-1.5,
+	#  						location=metadata_keys['ExpKeys.target'], filtering='none',
+	#  						imp = 0.0, group=nwbfile.electrode_groups[electrode_name])
 
-	
+	#  
 
-	# append data from different segments
+	#  # append data from different segments
 
-	spk_all = []
-	wv_all = []
-	csc_all_mag = []
-	csc_all_time = [];
-	beh_all = []
+	#  spk_all = []
+	#  wv_all = []
+	#  csc_all_mag = []
+	#  csc_all_time = [];
+	#  beh_all = []
 
-	for s in range(reader.header['nb_segment'][0]):
-	#     for i, chl in enumerate(reader.header['unit_channels']):
-		if s == 0:
-			for i, chl in enumerate(seg[0].segments[s].spiketrains):
-				spk_all.append([seg[0].segments[s].spiketrains[i].times])
-				
-			csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
-			csc_all_time = seg[0].segments[s].analogsignals[0].times
-			
-			for i, chl in enumerate(seg[0].segments[s].events):
-				beh_all.append([seg[0].segments[s].events[i].times])
-				
-		else:
-			for i, chl in enumerate(seg[0].segments[s].spiketrains):
-				spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
-				
-			csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
-			csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
-			
-			for i, chl in enumerate(seg[0].segments[s].events):
-				beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
+	#  for s in range(reader.header['nb_segment'][0]):
+	#  #     for i, chl in enumerate(reader.header['unit_channels']):
+	#  	if s == 0:
+	#  		for i, chl in enumerate(seg[0].segments[s].spiketrains):
+	#  			spk_all.append([seg[0].segments[s].spiketrains[i].times])
+	#  			
+	#  		csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
+	#  		csc_all_time = seg[0].segments[s].analogsignals[0].times
+	#  		
+	#  		for i, chl in enumerate(seg[0].segments[s].events):
+	#  			beh_all.append([seg[0].segments[s].events[i].times])
+	#  			
+	#  	else:
+	#  		for i, chl in enumerate(seg[0].segments[s].spiketrains):
+	#  			spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
+	#  			
+	#  		csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
+	#  		csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
+	#  		
+	#  		for i, chl in enumerate(seg[0].segments[s].events):
+	#  			beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
 
 
 	# add data to nwb file
