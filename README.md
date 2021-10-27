@@ -30,7 +30,7 @@ python -c 'import convert; convert.reposit_data(debug=True)'
 
 ## Data
 
-The conversion tool currently uses the `vStr_phase_stim` data, which should be located under an eponymous directory inside `~/.local/share/datalad/`, i.e. `~/.local/share/datalad/vStr_phase_stim`.
+The conversion tool currently uses the `vStr_phase_stim` data, which (unless another path is given via the `data_path` parameter) should be located under an eponymous directory inside `~/.local/share/datalad/`, i.e. `~/.local/share/datalad/vStr_phase_stim`.
 If the data collecition is too large for the user home directory, or is shared with other users on the machine, it can be located under a different partition (e.g. `/mnt/data/datalad`) and a symlink can be created for `~/.local/share/datalad/` to point to that location.
 The example command for these paths would be:
 
