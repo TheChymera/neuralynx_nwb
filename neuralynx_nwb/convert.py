@@ -13,7 +13,7 @@ from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
-	data_selection='_vStr_phase_stim/M235/M235-2021-07-16/',
+	data_selection='vStr_phase_stim/M235/M235-2021-07-16/',
 	lab_name='MVDMLab',
 	institution='Dartmouth College',
 	keywords=[
@@ -40,12 +40,21 @@ def reposit_data(
 		experiment_description=experiment_description,
 	)
 
-	# # create a reader
-	# #reader = neo.io.NeuralynxIO(dirname=session_data) # TODO: newer version should support: , keep_original_times=True)
-	# reader = neo.io.NeuralynxIO(dirname=session_data, keep_original_times=False) # TODO: newer version should support: , keep_original_times=True)
-	# reader.parse_header()
-	# if debug:
-	# 	print(reader)
+	# create a reader
+	reader = neo.io.NeuralynxIO(dirname=session_data,
+			keep_original_times=False,
+			exclude_filename=[
+				'WE1.ncs',
+				'WE2.ncs',
+				'LFP28.ncs',
+				'LFP30.ncs',
+				'LFP4.ncs',
+				'LFP6.ncs',
+				],
+			)
+	reader.parse_header()
+	if debug:
+		print(reader)
 
 	# # seg = reader.read_segment()
 	# seg = reader.read()
@@ -228,7 +237,8 @@ def reposit_data(
 	ephys_waveform = EventWaveform()
 
 	# loop through .ntt files
-	for i, chl in enumerate(reader.header['unit_channels']):
+	print(reader.header)
+	for i, chl in enumerate(reader.header['spike_channels']):
 		
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
