@@ -163,38 +163,34 @@ def reposit_data(
 	if debug:
 		print(nwbfile.identifier)
 
-	#  # add electrode metadata
-	#  # create probe device
-	#  device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
+	# add electrode metadata
+	# create probe device
+	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
-	#  # for each channel on the probe
-	#  for chl in reader.header['unit_channels']:
-	#  	
-	#  	# get tetrode id
-	#  	tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
-	#  	electrode_name = 'tetrode' + tetrode
-	#  	
-	#  	# get channel id
-	#  	channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
-	#  		   
-	#  	if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
-	#  	
-	#  		description = electrode_name
-	#  		location = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
-	#  			'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+	# for each channel on the probe
+	print(reader.header)
+	for chl in reader.header['spike_channels']:
+		# get tetrode id
+		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
+		electrode_name = 'tetrode' + tetrode
 
-	#  		electrode_group = nwbfile.create_electrode_group(electrode_name,
-	#  														 description=description,
-	#  														 location=location,
-	#  														 device=device)
-	#  		
-	#  	# add channel to tetrode
-	#  	nwbfile.add_electrode(id=int(channel),
-	#  						x=-1.2, y=float(metadata_keys['ExpKeys.probeDepth']), z=-1.5,
-	#  						location=metadata_keys['ExpKeys.target'], filtering='none',
-	#  						imp = 0.0, group=nwbfile.electrode_groups[electrode_name])
+		# get channel id
+		channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
 
-	#  
+		if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
+			description = electrode_name
+			location = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
+				'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+
+			electrode_group = nwbfile.create_electrode_group(electrode_name,
+															 description=description,
+															 location=location,
+															 device=device)
+		# add channel to tetrode
+		nwbfile.add_electrode(id=int(channel),
+							x=-1.2, y=float(metadata_keys['ExpKeys.probeDepth']), z=-1.5,
+							location=metadata_keys['ExpKeys.target'], filtering='none',
+							imp = 0.0, group=nwbfile.electrode_groups[electrode_name])
 
 	#  # append data from different segments
 
@@ -243,6 +239,8 @@ def reposit_data(
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
 		tetrode_name = 'TT' + tetrode
+		if debug:
+			print('Detected tetrode {} from header'.format(tetrode_name))
 			   
 		if tetrode_name not in ephys_waveform.spike_event_series: # make tetrode if does not exist
 			
