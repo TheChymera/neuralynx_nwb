@@ -138,7 +138,7 @@ def reposit_data(
 	reader_csc.parse_header()
 	reader_we.parse_header()
 
-	reader = reader_lfp
+	reader = reader_csc
 
 	# # Print out reader if looking for new fields.
 	# if debug:
@@ -256,7 +256,7 @@ def reposit_data(
 	print(reader.header)
 
 	# for each channel on the probe
-	for chl in reader.header['unit_channels']:
+	for chl in reader.header['spike_channels']:
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
 		electrode_name = 'tetrode' + tetrode
