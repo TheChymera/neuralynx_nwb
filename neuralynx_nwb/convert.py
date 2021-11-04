@@ -284,7 +284,9 @@ def reposit_data(
 	if debug:
 		print('Detected the following electrodes: {}'.format(nwbfile.electrode_groups))
 
+
 	# Start reading actual data, segment-wise
+	reader = reader_csc
 	seg = reader.read()
 
 	spk_all = []
@@ -346,16 +348,22 @@ def reposit_data(
 			for s in range(reader.header['nb_segment'][0]):
 				if s == 0:
 					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-					# waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
-					waveform = reader.get_spike_raw_waveforms(seg_index=s)
+					#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
+					#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+					waveform = reader.get_spike_raw_waveforms(s, i)
 				else:
 					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-					# waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
-					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s)])
+					#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
+					#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
+			print(np.shape(waveform))
+			print(np.shape(spk_all[i][0]))
+			print(spk_all[i])
+			print(spk_all[i][0])
 
 			ephys_waveform.create_spike_event_series(tetrode_name,
 													 waveform,
-													 spk_all[i],
+													 spk_all[i][0],
 													 electrode_table_region,
 													 )
 
