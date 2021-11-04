@@ -24,6 +24,7 @@ def reposit_data(
 	experiment_description='...',
 	debug=True,
 	session_description='Extracellular ephys recording in the ventral Striatum',
+	keep_original_times=True,
 	):
 
 	data_dir = path.abspath(path.expanduser(data_dir))
@@ -44,7 +45,7 @@ def reposit_data(
 	# create multiple readers, pending resolution of:
 	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
 	reader_lfp = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=False,
+			keep_original_times=keep_original_times,
 			exclude_filename=[
 				'WE1.ncs',
 				'WE2.ncs',
@@ -83,7 +84,7 @@ def reposit_data(
 				],
 			)
 	reader_csc = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=False,
+			keep_original_times=keep_original_times,
 			exclude_filename=[
 				'WE1.ncs',
 				'WE2.ncs',
@@ -94,7 +95,7 @@ def reposit_data(
 				],
 			)
 	reader_we = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=False,
+			keep_original_times=keep_original_times,
 			exclude_filename=[
 				'LFP28.ncs',
 				'LFP30.ncs',
