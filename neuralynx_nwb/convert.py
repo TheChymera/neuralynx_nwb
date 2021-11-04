@@ -9,6 +9,7 @@ import neo
 import pynwb
 from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
+from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
 
 def reposit_data(
@@ -26,7 +27,7 @@ def reposit_data(
 	):
 
 	data_dir = path.abspath(path.expanduser(data_dir))
-	session_data = path.normpath(path.join(data_dir,data_selection))
+	session_dir = path.normpath(path.join(data_dir,data_selection))
 
 	# Common lab wide metadata
 	lab_metadata = dict(
@@ -41,7 +42,7 @@ def reposit_data(
 	)
 
 	# create a reader
-	reader = neo.io.NeuralynxIO(dirname=session_data,
+	reader = neo.io.NeuralynxIO(dirname=session_dir,
 			keep_original_times=False,
 			exclude_filename=[
 				'WE1.ncs',
@@ -53,16 +54,18 @@ def reposit_data(
 				],
 			)
 	reader.parse_header()
-	if debug:
-		print(reader)
 
-	# # seg = reader.read_segment()
-	# seg = reader.read()
+	# # Print out reader if looking for new fields.
+	# if debug:
+	# 	print(reader)
 
-	print('Reading from: {}'.format(session_data))
+	# # Reading in segments might be useful at a later timepoint
+	# seg = reader.read_segment()
+
+	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
-		path.basename(session_data),
+		path.basename(session_dir),
 		).groupdict()
 	if debug:
 		print('Acquired the following metadata from path: {}'.format(filename_metadata))
@@ -77,7 +80,7 @@ def reposit_data(
 
 	## name of ExpKeys file
 	keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
-	keys_path = path.join(keys_filename)
+	keys_path = path.join(session_dir,keys_filename)
 
 	#  ## read session ExpKeys
 	#  with open (keys_path, 'rt') as keys_file:
@@ -146,10 +149,8 @@ def reposit_data(
 		print(subject_metadata)
 
 	# TODO add event labels to metadata
-
 	
-	# Such NWBFile will be created for each separate file, and then fill up with the corresponding
-	#
+	# Such NWBFile will be created for each separate file, and then fill up with the corresponding data
 	filename_suffix = "TODO"
 	nwbfile = NWBFile(
 		identifier="{}_{}".format(filename_prefix, filename_suffix), # args[1] in nwbfile, may be just UUID? not sure why user has to provide it really
@@ -163,12 +164,11 @@ def reposit_data(
 	if debug:
 		print(nwbfile.identifier)
 
-	# add electrode metadata
+	# Add electrode metadata
 	# create probe device
 	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
 	# for each channel on the probe
-	print(reader.header)
 	for chl in reader.header['spike_channels']:
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
@@ -178,19 +178,34 @@ def reposit_data(
 		channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
 
 		if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
+			print('Adding Electrode: {}'.format(electrode_name))
 			description = electrode_name
-			location = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
-				'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+			# # Pending inclusion of ExpKeys data, empty string location for the time being:
+			# location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
+			# 	'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+			location_full = ''
 
 			electrode_group = nwbfile.create_electrode_group(electrode_name,
-															 description=description,
-															 location=location,
-															 device=device)
-		# add channel to tetrode
-		nwbfile.add_electrode(id=int(channel),
-							x=-1.2, y=float(metadata_keys['ExpKeys.probeDepth']), z=-1.5,
-							location=metadata_keys['ExpKeys.target'], filtering='none',
-							imp = 0.0, group=nwbfile.electrode_groups[electrode_name])
+					description=description,
+					location=location_full,
+					device=device,
+					)
+			# add channel to tetrode
+			# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
+			# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
+			# This had a higher indent level in the original script, appears that might have been as mistake.
+			nwbfile.add_electrode(
+					id=int(channel),
+					x=-1.2,
+					y=2.,
+					z=-1.5,
+					location='target',
+					filtering='none',
+					imp = 0.0,
+					group=nwbfile.electrode_groups[electrode_name],
+					)
+	if debug:
+		print('Detected the following electrodes: {}'.format(nwbfile.electrode_groups))
 
 	#  # append data from different segments
 
