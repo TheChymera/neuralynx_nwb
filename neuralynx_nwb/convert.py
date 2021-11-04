@@ -140,13 +140,6 @@ def reposit_data(
 
 	reader = reader_csc
 
-	# # Print out reader if looking for new fields.
-	# if debug:
-	# 	print(reader)
-
-	# # Reading in segments might be useful at a later timepoint
-	# seg = reader.read_segment()
-
 	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
@@ -186,11 +179,8 @@ def reposit_data(
 	#  			
 	#  ## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
 	#  ## add filtering, individual tetrode depth, tetrode referencing
-
 	
-
 	# Metadata which is likely to come from data files and "promotion" metadata records
-
 	# Most likely many could be parsed from the filenames which are likely to encode some of it
 	# So "heuristical" converter could establish metadata harvesting from the filenames
 
@@ -294,35 +284,36 @@ def reposit_data(
 	if debug:
 		print('Detected the following electrodes: {}'.format(nwbfile.electrode_groups))
 
-	#  # append data from different segments
+	# Start reading actual data, segment-wise
+	seg = reader.read()
 
-	#  spk_all = []
-	#  wv_all = []
-	#  csc_all_mag = []
-	#  csc_all_time = [];
-	#  beh_all = []
+	spk_all = []
+	wv_all = []
+	csc_all_mag = []
+	csc_all_time = [];
+	beh_all = []
 
-	#  for s in range(reader.header['nb_segment'][0]):
-	#  #     for i, chl in enumerate(reader.header['unit_channels']):
-	#  	if s == 0:
-	#  		for i, chl in enumerate(seg[0].segments[s].spiketrains):
-	#  			spk_all.append([seg[0].segments[s].spiketrains[i].times])
-	#  			
-	#  		csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
-	#  		csc_all_time = seg[0].segments[s].analogsignals[0].times
-	#  		
-	#  		for i, chl in enumerate(seg[0].segments[s].events):
-	#  			beh_all.append([seg[0].segments[s].events[i].times])
-	#  			
-	#  	else:
-	#  		for i, chl in enumerate(seg[0].segments[s].spiketrains):
-	#  			spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
-	#  			
-	#  		csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
-	#  		csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
-	#  		
-	#  		for i, chl in enumerate(seg[0].segments[s].events):
-	#  			beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
+	for s in range(reader.header['nb_segment'][0]):
+	#     for i, chl in enumerate(reader.header['unit_channels']):
+		if s == 0:
+			for i, chl in enumerate(seg[0].segments[s].spiketrains):
+				spk_all.append([seg[0].segments[s].spiketrains[i].times])
+				
+			csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
+			csc_all_time = seg[0].segments[s].analogsignals[0].times
+			
+			for i, chl in enumerate(seg[0].segments[s].events):
+				beh_all.append([seg[0].segments[s].events[i].times])
+				
+		else:
+			for i, chl in enumerate(seg[0].segments[s].spiketrains):
+				spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
+				
+			csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
+			csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
+			
+			for i, chl in enumerate(seg[0].segments[s].events):
+				beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
 
 
 	# add data to nwb file
@@ -354,9 +345,13 @@ def reposit_data(
 			electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
 			for s in range(reader.header['nb_segment'][0]):
 				if s == 0:
-					waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
+					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+					# waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
+					waveform = reader.get_spike_raw_waveforms(seg_index=s)
 				else:
-					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
+					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+					# waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
+					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s)])
 
 			ephys_waveform.create_spike_event_series(tetrode_name,
 													 waveform,
