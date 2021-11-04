@@ -168,8 +168,10 @@ def reposit_data(
 	# create probe device
 	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
+	print(reader.header)
+
 	# for each channel on the probe
-	for chl in reader.header['spike_channels']:
+	for chl in reader.header['unit_channels']:
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
 		electrode_name = 'tetrode' + tetrode
@@ -248,7 +250,7 @@ def reposit_data(
 	ephys_waveform = EventWaveform()
 
 	# loop through .ntt files
-	print(reader.header)
+	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
 		
 		# get tetrode id
@@ -258,31 +260,24 @@ def reposit_data(
 			print('Detected tetrode {} from header'.format(tetrode_name))
 			   
 		if tetrode_name not in ephys_waveform.spike_event_series: # make tetrode if does not exist
-			
+			print('Adding Tetrode: {}'.format(tetrode_name))
 			chl_list = []
-			
 			for j, group in enumerate(nwbfile.electrodes['group']):
-			
 				if tetrode in nwbfile.electrodes['group'][j].fields['description']:
-					
 					chl_list.append(j)
 			
 			electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
-			
 			for s in range(reader.header['nb_segment'][0]):
-				
 				if s == 0:
-					
 					waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
-					
 				else:
-					
 					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
 
 			ephys_waveform.create_spike_event_series(tetrode_name,
 													 waveform,
 													 spk_all[i],
-													 electrode_table_region)
+													 electrode_table_region,
+													 )
 
 	nwbfile.add_acquisition(ephys_waveform)
 
