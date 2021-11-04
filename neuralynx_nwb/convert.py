@@ -41,8 +41,48 @@ def reposit_data(
 		experiment_description=experiment_description,
 	)
 
-	# create a reader
-	reader = neo.io.NeuralynxIO(dirname=session_dir,
+	# create multiple readers, pending resolution of:
+	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	reader_lfp = neo.io.NeuralynxIO(dirname=session_dir,
+			keep_original_times=False,
+			exclude_filename=[
+				'WE1.ncs',
+				'WE2.ncs',
+				'CSC1.ncs',
+				'CSC2.ncs',
+				'CSC3.ncs',
+				'CSC4.ncs',
+				'CSC5.ncs',
+				'CSC6.ncs',
+				'CSC7.ncs',
+				'CSC8.ncs',
+				'CSC9.ncs',
+				'CSC10.ncs',
+				'CSC11.ncs',
+				'CSC12.ncs',
+				'CSC13.ncs',
+				'CSC14.ncs',
+				'CSC15.ncs',
+				'CSC16.ncs',
+				'CSC17.ncs',
+				'CSC18.ncs',
+				'CSC19.ncs',
+				'CSC20.ncs',
+				'CSC21.ncs',
+				'CSC22.ncs',
+				'CSC23.ncs',
+				'CSC24.ncs',
+				'CSC25.ncs',
+				'CSC26.ncs',
+				'CSC27.ncs',
+				'CSC28.ncs',
+				'CSC29.ncs',
+				'CSC30.ncs',
+				'CSC31.ncs',
+				'CSC32.ncs',
+				],
+			)
+	reader_csc = neo.io.NeuralynxIO(dirname=session_dir,
 			keep_original_times=False,
 			exclude_filename=[
 				'WE1.ncs',
@@ -53,7 +93,52 @@ def reposit_data(
 				'LFP6.ncs',
 				],
 			)
-	reader.parse_header()
+	reader_we = neo.io.NeuralynxIO(dirname=session_dir,
+			keep_original_times=False,
+			exclude_filename=[
+				'LFP28.ncs',
+				'LFP30.ncs',
+				'LFP4.ncs',
+				'LFP6.ncs',
+				'CSC1.ncs',
+				'CSC2.ncs',
+				'CSC3.ncs',
+				'CSC4.ncs',
+				'CSC5.ncs',
+				'CSC6.ncs',
+				'CSC7.ncs',
+				'CSC8.ncs',
+				'CSC9.ncs',
+				'CSC10.ncs',
+				'CSC11.ncs',
+				'CSC12.ncs',
+				'CSC13.ncs',
+				'CSC14.ncs',
+				'CSC15.ncs',
+				'CSC16.ncs',
+				'CSC17.ncs',
+				'CSC18.ncs',
+				'CSC19.ncs',
+				'CSC20.ncs',
+				'CSC21.ncs',
+				'CSC22.ncs',
+				'CSC23.ncs',
+				'CSC24.ncs',
+				'CSC25.ncs',
+				'CSC26.ncs',
+				'CSC27.ncs',
+				'CSC28.ncs',
+				'CSC29.ncs',
+				'CSC30.ncs',
+				'CSC31.ncs',
+				'CSC32.ncs',
+				],
+			)
+	reader_lfp.parse_header()
+	reader_csc.parse_header()
+	reader_we.parse_header()
+
+	reader = reader_lfp
 
 	# # Print out reader if looking for new fields.
 	# if debug:
