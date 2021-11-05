@@ -346,7 +346,9 @@ def reposit_data(
 					chl_list.append(j)
 			
 			electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
-			for s in range(reader.header['nb_segment'][0]):
+			waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
+			'''for s in range(reader.header['nb_segment'][0]):
+				print('s = {}, i = {}'.format(s,i))
 				if s == 0:
 					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
 					#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
@@ -356,7 +358,7 @@ def reposit_data(
 					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
 					#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
 					#waveform = reader.get_spike_raw_waveforms(seg_index=s)
-					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
+					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])'''
 			print(np.shape(waveform))
 			print(np.shape(spk_all[i][0]))
 			print(spk_all[i])
