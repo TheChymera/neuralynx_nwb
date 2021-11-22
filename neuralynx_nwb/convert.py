@@ -43,7 +43,6 @@ def reposit_data(
 		experiment_description=experiment_description,
 	)
 
-	file_prefixes = []
 	files_dict = {}
 	for i_file in listdir(session_dir):
 		try:
@@ -51,8 +50,7 @@ def reposit_data(
 		except IndexError:
 			pass
 		else:
-			if not file_prefix in file_prefixes:
-				file_prefixes.append(file_prefix)
+			if not file_prefix in files_dict.keys():
 				files_dict[file_prefix] = []
 			files_dict[file_prefix].append(i_file)
 	if debug:
