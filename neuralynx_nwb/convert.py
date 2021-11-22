@@ -71,8 +71,11 @@ def reposit_data(
 				)
 		reader.parse_header()
 		readers[prefix] = reader
+		if debug:
+			textfile = open('{}_reader_header.log'.format(prefix), "w")
+			textfile.write('{}\n'.format(str(reader.header)))
+			textfile.close()
 	
-	reader = readers['CSC']
 	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
@@ -176,7 +179,7 @@ def reposit_data(
 	# create probe device
 	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
-	print(reader.header)
+	reader = readers['CSC']
 
 	# for each channel on the probe
 	for chl in reader.header['spike_channels']:
