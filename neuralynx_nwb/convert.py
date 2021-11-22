@@ -1,9 +1,10 @@
 import numpy as np
 import re
 import time
+from copy import deepcopy
 from datetime import datetime
 from dateutil.tz import tzlocal
-from os import path
+from os import path, listdir
 
 import neo
 import pynwb
@@ -36,111 +37,44 @@ def reposit_data(
 		institution=institution,
 		keywords=keywords,
 	)
-	# Experiment specific one
+	# Experiment specific metadata
 	experiment_metadata = dict(
 		experimenter=experimenter,
 		experiment_description=experiment_description,
 	)
 
+	file_prefixes = []
+	files_dict = {}
+	for i_file in listdir(session_dir):
+		try:
+			file_prefix = re.findall('(?P<prefix>[A-Za-z]*)[0-9]*\.ncs$', i_file)[0]
+		except IndexError:
+			pass
+		else:
+			if not file_prefix in file_prefixes:
+				file_prefixes.append(file_prefix)
+				files_dict[file_prefix] = []
+			files_dict[file_prefix].append(i_file)
+	if debug:
+		print('Created the following dictionary of files based on the {} session directory:'.format(session_dir))
+		print(files_dict)
+
 	# create multiple readers, pending resolution of:
 	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
-	reader_lfp = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=keep_original_times,
-			exclude_filename=[
-				'WE1.ncs',
-				'WE2.ncs',
-				'CSC1.ncs',
-				'CSC2.ncs',
-				'CSC3.ncs',
-				'CSC4.ncs',
-				'CSC5.ncs',
-				'CSC6.ncs',
-				'CSC7.ncs',
-				'CSC8.ncs',
-				'CSC9.ncs',
-				'CSC10.ncs',
-				'CSC11.ncs',
-				'CSC12.ncs',
-				'CSC13.ncs',
-				'CSC14.ncs',
-				'CSC15.ncs',
-				'CSC16.ncs',
-				'CSC17.ncs',
-				'CSC18.ncs',
-				'CSC19.ncs',
-				'CSC20.ncs',
-				'CSC21.ncs',
-				'CSC22.ncs',
-				'CSC23.ncs',
-				'CSC24.ncs',
-				'CSC25.ncs',
-				'CSC26.ncs',
-				'CSC27.ncs',
-				'CSC28.ncs',
-				'CSC29.ncs',
-				'CSC30.ncs',
-				'CSC31.ncs',
-				'CSC32.ncs',
-				],
-			)
-	reader_csc = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=keep_original_times,
-			exclude_filename=[
-				'WE1.ncs',
-				'WE2.ncs',
-				'LFP28.ncs',
-				'LFP30.ncs',
-				'LFP4.ncs',
-				'LFP6.ncs',
-				],
-			)
-	reader_we = neo.io.NeuralynxIO(dirname=session_dir,
-			keep_original_times=keep_original_times,
-			exclude_filename=[
-				'LFP28.ncs',
-				'LFP30.ncs',
-				'LFP4.ncs',
-				'LFP6.ncs',
-				'CSC1.ncs',
-				'CSC2.ncs',
-				'CSC3.ncs',
-				'CSC4.ncs',
-				'CSC5.ncs',
-				'CSC6.ncs',
-				'CSC7.ncs',
-				'CSC8.ncs',
-				'CSC9.ncs',
-				'CSC10.ncs',
-				'CSC11.ncs',
-				'CSC12.ncs',
-				'CSC13.ncs',
-				'CSC14.ncs',
-				'CSC15.ncs',
-				'CSC16.ncs',
-				'CSC17.ncs',
-				'CSC18.ncs',
-				'CSC19.ncs',
-				'CSC20.ncs',
-				'CSC21.ncs',
-				'CSC22.ncs',
-				'CSC23.ncs',
-				'CSC24.ncs',
-				'CSC25.ncs',
-				'CSC26.ncs',
-				'CSC27.ncs',
-				'CSC28.ncs',
-				'CSC29.ncs',
-				'CSC30.ncs',
-				'CSC31.ncs',
-				'CSC32.ncs',
-				],
-			)
-	reader_lfp.parse_header()
-	reader_csc.parse_header()
-	reader_we.parse_header()
-
-	reader = reader_csc
-
+	readers = {}
+	for prefix in files_dict.keys():
+		exclude_dict = deepcopy(files_dict)
+		exclude_dict.pop(prefix)
+		exclude_list = exclude_dict.values()
+		exclude_list = [val for sublist in exclude_list for val in sublist]
+		reader = neo.io.NeuralynxIO(dirname=session_dir,
+				keep_original_times=keep_original_times,
+				exclude_filename=exclude_list,
+				)
+		reader.parse_header()
+		readers[prefix] = reader
+	
+	reader = readers['CSC']
 	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
@@ -287,7 +221,7 @@ def reposit_data(
 
 
 	# Start reading actual data, segment-wise
-	reader = reader_csc
+	reader = readers['CSC']
 	seg = reader.read()
 
 	spk_all = []
