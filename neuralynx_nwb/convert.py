@@ -12,6 +12,9 @@ from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
+# TODO
+# 1. The electrode_group should be fetched from the TT
+# 2. The electrode should be fetched from CSC
 
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
