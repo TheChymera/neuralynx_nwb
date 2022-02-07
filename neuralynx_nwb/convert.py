@@ -13,8 +13,7 @@ from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
 # TODO
-# 1. The electrode_group should be fetched from the TT
-# 2. The electrode should be fetched from CSC
+# 1. What should be done with unassigned channels?
 
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
@@ -78,7 +77,7 @@ def reposit_data(
 			textfile = open('{}_reader_header.log'.format(prefix), "w")
 			textfile.write('{}\n'.format(str(reader.header)))
 			textfile.close()
-	
+
 	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
@@ -91,8 +90,8 @@ def reposit_data(
 	# time.gmtime(reader.get_event_timestamps()[0][0])
 	# TODO: figure out where in this 
 	# TODO: figure out what those timestamps in.
-	
-	
+
+
 	# Scans through Experimental Keys to extract relevant metadata for NWB file
 
 	## name of ExpKeys file
@@ -184,49 +183,56 @@ def reposit_data(
 
 	reader = readers['CSC']
 
-	# for each channel on the probe
+	# Set up channels
+	electrode_groups = {}
 	for chl in reader.header['spike_channels']:
-		# get tetrode id
-		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
-		electrode_name = 'tetrode' + tetrode
-
-		# get channel id
-		channel = re.search('(?<=#)(.*?)(?=#)', chl[0]).group(0)
-
-		if electrode_name not in nwbfile.electrode_groups: # make tetrode if does not exist
-			print('Adding Electrode: {}'.format(electrode_name))
-			description = electrode_name
+		electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
+		channel_info = re.search(electrode_matching, chl[0]).groupdict()
+		electrode_group_nr = channel_info['electrode_group']
+		signal_channel = channel_info['signal_channel']
+		electrode_group_name = f'electrode{electrode_group_nr}'
+		if signal_channel not in electrode_groups.keys():
+			electrode_groups[signal_channel] = electrode_group_name
+		if electrode_group_name not in nwbfile.electrode_groups: # make tetrode if does not exist
+			if debug:
+				print('Adding Electrode Group: {}'.format(electrode_group_name))
+			description = electrode_group_name
 			# # Pending inclusion of ExpKeys data, empty string location for the time being:
 			# location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
 			# 	'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
 			location_full = ''
-
-			electrode_group = nwbfile.create_electrode_group(electrode_name,
+			electrode_group = nwbfile.create_electrode_group(electrode_group_name,
 					description=description,
 					location=location_full,
 					device=device,
 					)
-			# add channel to tetrode
-			# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
-			# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
-			# This had a higher indent level in the original script, appears that might have been as mistake.
-			nwbfile.add_electrode(
-					id=int(channel),
-					x=-1.2,
-					y=2.,
-					z=-1.5,
-					location='target',
-					filtering='none',
-					imp = 0.0,
-					group=nwbfile.electrode_groups[electrode_name],
-					)
 	if debug:
-		print('Detected the following electrodes: {}'.format(nwbfile.electrode_groups))
+		print('Detected the following electrode groups: {}'.format(nwbfile.electrode_groups))
 
+	print(electrode_groups)
+	print(reader.header['signal_channels'])
+	for chl in reader.header['signal_channels']:
+		channel_matching = '^CSC(?P<signal_channel>[0-9]*?)$'
+		channel_nr = re.search(channel_matching, chl[0]).groupdict()['signal_channel']
+		electrode_group = electrode_groups[channel_nr]
+		# add channel to tetrode
+		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
+		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
+		# This had a higher indent level in the original script, appears that might have been as mistake.
+		nwbfile.add_electrode(
+				id=int(channel_nr),
+				x=-1.2,
+				y=2.,
+				z=-1.5,
+				location='target',
+				filtering='none',
+				imp = 0.0,
+				group=nwbfile.electrode_groups[electrode_group],
+				)
 
-	# Start reading actual data, segment-wise
-	reader = readers['CSC']
-	seg = reader.read()
+	if debug:
+		print('Detected the following channels: {}'.format(nwbfile.electrodes))
+
 
 	spk_all = []
 	wv_all = []
