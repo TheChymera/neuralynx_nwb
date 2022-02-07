@@ -207,10 +207,8 @@ def reposit_data(
 					device=device,
 					)
 	if debug:
-		print('Detected the following electrode groups: {}'.format(nwbfile.electrode_groups))
+		print('\nDetected the following electrode groups:\n{}'.format(nwbfile.electrode_groups))
 
-	print(electrode_groups)
-	print(reader.header['signal_channels'])
 	for chl in reader.header['signal_channels']:
 		channel_matching = '^CSC(?P<signal_channel>[0-9]*?)$'
 		channel_nr = re.search(channel_matching, chl[0]).groupdict()['signal_channel']
@@ -219,6 +217,8 @@ def reposit_data(
 		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
 		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
 		# This had a higher indent level in the original script, appears that might have been as mistake.
+		if debug:
+			print('Adding Signal Channel: {}'.format(channel_nr))
 		nwbfile.add_electrode(
 				id=int(channel_nr),
 				x=-1.2,
