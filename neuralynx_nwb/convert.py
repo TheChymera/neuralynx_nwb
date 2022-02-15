@@ -12,8 +12,6 @@ from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
-# TODO
-# 1. What should be done with unassigned channels?
 
 def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
 	# create multiple readers, pending resolution of:
@@ -65,7 +63,7 @@ def _read_data_segments(reader, debug=False):
 
 	# wv and spk might need to be parsed from another reader (check shapes printed at the end).
 	for s in range(reader.header['nb_segment'][0]):
-	#     for i, chl in enumerate(reader.header['unit_channels']):
+	#	 for i, chl in enumerate(reader.header['unit_channels']):
 		if s == 0:
 			for i, chl in enumerate(seg[0].segments[s].spiketrains):
 				spk_all.append([seg[0].segments[s].spiketrains[i].times])
@@ -184,9 +182,9 @@ def reposit_data(
 		age="TODO",  # duplicate with session_start_time and date_of_birth but why not?
 		species=metadata_keys['ExpKeys.species'],
 		sex="female",
-	#     hemisphere=metadata_keys['ExpKeys.hemisphere'],
-	#     depth=metadata_keys['ExpKeys.probeDepth'],
-	#     region=metadata_keys['ExpKeys.target'],
+	#	 hemisphere=metadata_keys['ExpKeys.hemisphere'],
+	#	 depth=metadata_keys['ExpKeys.probeDepth'],
+	#	 region=metadata_keys['ExpKeys.target'],
 		date_of_birth=datetime.now(tzlocal()), # TEMP: TODO
 	)
 	surgery_metadata = dict(
