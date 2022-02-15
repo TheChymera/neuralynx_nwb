@@ -210,8 +210,7 @@ def reposit_data(
 		print('\nDetected the following electrode groups:\n{}'.format(nwbfile.electrode_groups))
 
 	for chl in reader.header['signal_channels']:
-		channel_matching = '^CSC(?P<signal_channel>[0-9]*?)$'
-		channel_nr = re.search(channel_matching, chl[0]).groupdict()['signal_channel']
+		channel_nr = chl[1]
 		electrode_group = electrode_groups[channel_nr]
 		# add channel to tetrode
 		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
