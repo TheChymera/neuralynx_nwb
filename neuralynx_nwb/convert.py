@@ -15,6 +15,87 @@ from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 # TODO
 # 1. What should be done with unassigned channels?
 
+def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
+	# create multiple readers, pending resolution of:
+	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	files_dict = {}
+	for i_file in listdir(session_dir):
+		try:
+			file_prefix = re.findall('(?P<prefix>[A-Za-z]*)[0-9]*\.ncs$', i_file)[0]
+		except IndexError:
+			pass
+		else:
+			if not file_prefix in files_dict.keys():
+				files_dict[file_prefix] = []
+			files_dict[file_prefix].append(i_file)
+	if debug:
+		print('Created the following dictionary of files based on the {} session directory:'.format(session_dir))
+		print(files_dict)
+
+	readers = {}
+	for prefix in files_dict.keys():
+		exclude_dict = deepcopy(files_dict)
+		exclude_dict.pop(prefix)
+		exclude_list = exclude_dict.values()
+		exclude_list = [val for sublist in exclude_list for val in sublist]
+		reader = neo.io.NeuralynxIO(dirname=session_dir,
+				keep_original_times=keep_original_times,
+				exclude_filename=exclude_list,
+				)
+		reader.parse_header()
+		readers[prefix] = reader
+		if debug:
+			textfile = open('{}_reader_header.log'.format(prefix), "w")
+			textfile.write('{}\n'.format(str(reader.header)))
+			textfile.close()
+
+	return readers
+
+def _read_data_segments(reader, debug=False):
+	"""Return NumPy arrays with data segments from a `neo.io.NeuraLynxIO` reader object."""
+
+	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
+	seg = reader.read()
+
+	spk_all = []
+	wv_all = []
+	csc_all_mag = []
+	csc_all_time = [];
+	beh_all = []
+
+	# wv and spk might need to be parsed from another reader (check shapes printed at the end).
+	for s in range(reader.header['nb_segment'][0]):
+	#     for i, chl in enumerate(reader.header['unit_channels']):
+		if s == 0:
+			for i, chl in enumerate(seg[0].segments[s].spiketrains):
+				spk_all.append([seg[0].segments[s].spiketrains[i].times])
+				
+			csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
+			csc_all_time = seg[0].segments[s].analogsignals[0].times
+			
+			for i, chl in enumerate(seg[0].segments[s].events):
+				beh_all.append([seg[0].segments[s].events[i].times])
+				
+		else:
+			for i, chl in enumerate(seg[0].segments[s].spiketrains):
+				spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
+				
+			csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
+			csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
+			
+			for i, chl in enumerate(seg[0].segments[s].events):
+				beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
+
+	if debug:
+		print(f"spk_all shape: {np.shape(spk_all)}")
+		print(f"wv_all shape: {np.shape(wv_all)}")
+		print(f"csc_all_mag shape: {np.shape(csc_all_mag)}")
+		print(f"csc_all_time shape: {np.shape(csc_all_time)}")
+		print(f"beh_all shape: {np.shape(beh_all)}")
+	
+	return spk_all, wv_all, csc_all_mag, csc_all_time, beh_all
+
+
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
 	data_selection='vStr_phase_stim/M235/M235-2021-07-16/',
@@ -45,38 +126,7 @@ def reposit_data(
 		experiment_description=experiment_description,
 	)
 
-	files_dict = {}
-	for i_file in listdir(session_dir):
-		try:
-			file_prefix = re.findall('(?P<prefix>[A-Za-z]*)[0-9]*\.ncs$', i_file)[0]
-		except IndexError:
-			pass
-		else:
-			if not file_prefix in files_dict.keys():
-				files_dict[file_prefix] = []
-			files_dict[file_prefix].append(i_file)
-	if debug:
-		print('Created the following dictionary of files based on the {} session directory:'.format(session_dir))
-		print(files_dict)
-
-	# create multiple readers, pending resolution of:
-	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
-	readers = {}
-	for prefix in files_dict.keys():
-		exclude_dict = deepcopy(files_dict)
-		exclude_dict.pop(prefix)
-		exclude_list = exclude_dict.values()
-		exclude_list = [val for sublist in exclude_list for val in sublist]
-		reader = neo.io.NeuralynxIO(dirname=session_dir,
-				keep_original_times=keep_original_times,
-				exclude_filename=exclude_list,
-				)
-		reader.parse_header()
-		readers[prefix] = reader
-		if debug:
-			textfile = open('{}_reader_header.log'.format(prefix), "w")
-			textfile.write('{}\n'.format(str(reader.header)))
-			textfile.close()
+	readers = _create_neuralynx_group_readers(session_dir, debug=debug, keep_original_times=keep_original_times)
 
 	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
@@ -229,40 +279,11 @@ def reposit_data(
 				group=nwbfile.electrode_groups[electrode_group],
 				)
 
-	if debug:
-		print('Detected the following channels: {}'.format(nwbfile.electrodes))
+	# This doesn't list the signal channels for some reason
+	#if debug:
+	#	print('Detected the following channels: {}'.format(nwbfile.electrodes))
 
-	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
-	seg = reader.read()
-
-	spk_all = []
-	wv_all = []
-	csc_all_mag = []
-	csc_all_time = [];
-	beh_all = []
-
-	for s in range(reader.header['nb_segment'][0]):
-	#     for i, chl in enumerate(reader.header['unit_channels']):
-		if s == 0:
-			for i, chl in enumerate(seg[0].segments[s].spiketrains):
-				spk_all.append([seg[0].segments[s].spiketrains[i].times])
-				
-			csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
-			csc_all_time = seg[0].segments[s].analogsignals[0].times
-			
-			for i, chl in enumerate(seg[0].segments[s].events):
-				beh_all.append([seg[0].segments[s].events[i].times])
-				
-		else:
-			for i, chl in enumerate(seg[0].segments[s].spiketrains):
-				spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
-				
-			csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
-			csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
-			
-			for i, chl in enumerate(seg[0].segments[s].events):
-				beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
-
+	spk_all, wv_all, csc_all_mag, csc_all_time, beh_all = _read_data_segments(reader, debug=debug)
 
 	# add data to nwb file
 	from pynwb.ecephys import ElectricalSeries
@@ -282,6 +303,7 @@ def reposit_data(
 		tetrode_name = 'TT' + tetrode
 		if debug:
 			print('Detected tetrode {} from header'.format(tetrode_name))
+
 			   
 		if tetrode_name not in ephys_waveform.spike_event_series: # make tetrode if does not exist
 			print('Adding Tetrode: {}'.format(tetrode_name))
