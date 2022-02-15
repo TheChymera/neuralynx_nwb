@@ -232,6 +232,8 @@ def reposit_data(
 	if debug:
 		print('Detected the following channels: {}'.format(nwbfile.electrodes))
 
+	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
+	seg = reader.read()
 
 	spk_all = []
 	wv_all = []
