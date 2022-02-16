@@ -315,21 +315,22 @@ def reposit_data(
 
 	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
-
-		channel_nr = chl[1]
-		# get tetrode id
-		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
-		tetrode_name = 'TT' + tetrode
+		# TT is part of the name, so matching should be ch..#..#?
+		electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
+		channel_info = re.search(electrode_matching, chl[0]).groupdict()
+		electrode_group_nr = channel_info['electrode_group']
+		signal_channel = channel_info['signal_channel']
+		tetrode_group_name = 'TT' + electrode_group_nr
 		if debug:
-			print('Detected tetrode {} from header'.format(tetrode_name))
+			print('Detected tetrode {} from header'.format(electrode_group_name))
 
-			   
-		if tetrode_name not in ephys_waveform.spike_event_series: # make tetrode if does not exist
-			print('Adding Tetrode: {}'.format(tetrode_name))
-			chl_list = []
-			for j, group in enumerate(nwbfile.electrodes['group']):
-				if tetrode in nwbfile.electrodes['group'][j].fields['description']:
-					chl_list.append(j)
+		# It should be in since we just created them based on the selfsame strings.   
+		#if electrode_group_nr not in ephys_waveform.spike_event_series: # make tetrode if does not exist
+		#	print('Adding Tetrode: {}'.format(tetrode_name))
+		#	chl_list = []
+		#	for j, group in enumerate(nwbfile.electrodes['group']):
+		#		if tetrode in nwbfile.electrodes['group'][j].fields['description']:
+		#			chl_list.append(j)
 			
 			electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
 			waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
