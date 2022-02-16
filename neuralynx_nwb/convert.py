@@ -245,7 +245,7 @@ def reposit_data(
 		print(nwbfile.identifier)
 
 	# Add electrode metadata
-	# c	reate probe device
+	# Create probe device
 	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
 	reader = readers['CSC']
@@ -313,9 +313,9 @@ def reposit_data(
 				group=nwbfile.electrode_groups[electrode_group],
 				)
 
-			return 
+			return nwbfile 
 	
-	_setup_channels(reader)
+	nwbfile = _setup_channels(reader)
 	# This doesn't list the signal channels for some reason
 	#if debug:
 	#	print('Detected the following channels: {}'.format(nwbfile.electrodes))
