@@ -289,13 +289,34 @@ def reposit_data(
 	from pynwb.ecephys import EventWaveform
 	from pynwb.behavior import BehavioralTimeSeries
 
-	# add .ntt files
+	# Add continuous signal data from .ncs files;
+	# reader needs to be CSC for this.
+	chl_list = []
+
+	for chl in reader.header['signal_channels']:
+		# reference by identifier and not by numbered index in the electrode listing as well
+		channel_nr = int(chl['id'])
+		chl_list.append(nwbfile.electrodes['id'][:].index(channel_nr))
+		
+	electrode_table_region = nwbfile.create_electrode_table_region(chl_list, 'CSC order for time series')
+
+	ephys_ts = ElectricalSeries('CSC data',
+								csc_all_mag,
+								electrode_table_region,
+								timestamps=csc_all_time,
+								comments='n/a',
+								description='unfiltered CSC data')
+
+	nwbfile.add_acquisition(ephys_ts)
+
+
+	# Add spike data from .ntt files
 	ephys_waveform = EventWaveform()
 
-	# loop through .ntt files
 	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
-		
+
+		channel_nr = chl[1]
 		# get tetrode id
 		tetrode = re.search('(?<=TT)(.*?)(?=#)', chl[0]).group(0)
 		tetrode_name = 'TT' + tetrode
@@ -337,24 +358,6 @@ def reposit_data(
 
 	nwbfile.add_acquisition(ephys_waveform)
 
-	# add .ncs files
-
-	chl_list = []
-
-	for chl in reader.header['signal_channels']['id']:
-		
-		chl_list.append(nwbfile.electrodes['id'][:].index(chl))
-		
-	electrode_table_region = nwbfile.create_electrode_table_region(chl_list, 'CSC order for time series')
-
-	ephys_ts = ElectricalSeries('CSC data',
-								csc_all_mag,
-								electrode_table_region,
-								timestamps=csc_all_time,
-								comments='n/a',
-								description='unfiltered CSC data')
-
-	nwbfile.add_acquisition(ephys_ts)
 
 	# nwbfile.add_unit(id=1, electrodes=[0])
 	# nwbfile.add_unit(id=2, electrodes=[0])
