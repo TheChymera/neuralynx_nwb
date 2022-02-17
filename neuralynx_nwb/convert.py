@@ -132,13 +132,12 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 	# Set up channels
 	electrode_groups = {}
 	for chl in reader.header['spike_channels']:
-		electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
-		channel_info = re.search(electrode_matching, chl[0]).groupdict()
-		electrode_group_nr = channel_info['electrode_group']
-		signal_channel = channel_info['signal_channel']
-		electrode_group_name = f'electrode{electrode_group_nr}'
-		if signal_channel not in electrode_groups.keys():
-			electrode_groups[signal_channel] = electrode_group_name
+		electrode_matching = '^ch(?P<electrode_group>[a-z,A-Z,0-9]*?)#(?P<channel_nr>[0-9]*?)#.*?$'
+		channel_info = re.search(electrode_matching, chl['name']).groupdict()
+		electrode_group_name = channel_info['electrode_group']
+		channel_nr = int(channel_info['channel_nr'])
+		if channel_nr not in electrode_groups.keys():
+			electrode_groups[channel_nr] = electrode_group_name
 		if electrode_group_name not in nwbfile.electrode_groups: # make tetrode if does not exist
 			if debug:
 				print('Adding Electrode Group: {}'.format(electrode_group_name))
@@ -155,9 +154,9 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 	if debug:
 		print('\nDetected the following electrode groups:\n{}'.format(nwbfile.electrode_groups))
 
-	for chl in reader.header['signal_channels']:
-		channel_nr = chl[1]
-		electrode_group = electrode_groups[channel_nr]
+	for channel_nr in reader.header['signal_channels']['id']:
+		channel_nr = int(channel_nr)
+		electrode_group_name = electrode_groups[channel_nr]
 		# add channel to tetrode
 		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
 		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
@@ -165,14 +164,14 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 		if debug:
 			print('Adding Signal Channel: {}'.format(channel_nr))
 		nwbfile.add_electrode(
-			id=int(channel_nr),
+			id=channel_nr,
 			x=-1.2,
 			y=2.,
 			z=-1.5,
 			location='target',
 			filtering='none',
 			imp = 0.0,
-			group=nwbfile.electrode_groups[electrode_group],
+			group=nwbfile.electrode_groups[electrode_group_name],
 			)
 
 	return nwbfile
