@@ -112,6 +112,71 @@ def _read_data_segments(reader, debug=False):
 	
 	return spk_all, wv_all, csc_all_mag, csc_all_time, beh_all
 
+def _setup_channels(reader, nwbfile, device, debug=False):
+	"""
+	Set up the channels for the experiment by searching through each ch in the reader class
+	and check for appropriate information (signal channel information as well as electrode group names
+	and debugging information if in debug mode).
+
+	Parameters : class (reader)
+
+    reader is a class for reading data from Neuralynx files.
+	This IO supports NCS, NEV, NSE and NTT file formats.
+
+	* NCS contains signals for one channel
+	* NEV contains events
+	* NSE contains spikes and waveforms for mono electrodes
+	* NTT contains spikes and waveforms for tetrodes
+	"""
+
+	# Set up channels
+	electrode_groups = {}
+	for chl in reader.header['spike_channels']:
+		electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
+		channel_info = re.search(electrode_matching, chl[0]).groupdict()
+		electrode_group_nr = channel_info['electrode_group']
+		signal_channel = channel_info['signal_channel']
+		electrode_group_name = f'electrode{electrode_group_nr}'
+		if signal_channel not in electrode_groups.keys():
+			electrode_groups[signal_channel] = electrode_group_name
+		if electrode_group_name not in nwbfile.electrode_groups: # make tetrode if does not exist
+			if debug:
+				print('Adding Electrode Group: {}'.format(electrode_group_name))
+			description = electrode_group_name
+			# # Pending inclusion of ExpKeys data, empty string location for the time being:
+			# location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
+			# 	'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+			location_full = ''
+			electrode_group = nwbfile.create_electrode_group(electrode_group_name,
+					description=description,
+					location=location_full,
+					device=device,
+					)
+	if debug:
+		print('\nDetected the following electrode groups:\n{}'.format(nwbfile.electrode_groups))
+
+	for chl in reader.header['signal_channels']:
+		channel_nr = chl[1]
+		electrode_group = electrode_groups[channel_nr]
+		# add channel to tetrode
+		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
+		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
+		# This had a higher indent level in the original script, appears that might have been as mistake.
+		if debug:
+			print('Adding Signal Channel: {}'.format(channel_nr))
+		nwbfile.add_electrode(
+			id=int(channel_nr),
+			x=-1.2,
+			y=2.,
+			z=-1.5,
+			location='target',
+			filtering='none',
+			imp = 0.0,
+			group=nwbfile.electrode_groups[electrode_group],
+			)
+
+	return nwbfile
+
 
 def reposit_data(
 	data_dir='~/.local/share/datalad/',
@@ -250,72 +315,8 @@ def reposit_data(
 
 	reader = readers['CSC']
 
-	def _setup_channels(reader, debug=debug):
-		"""
-		Set up the channels for the experiment by searching through each ch in the reader class
-		and check for appropriate information (signal channel information as well as electrode group names
-		and debugging information if in debug mode). 
-
-		Parameters : class (reader)
-
-	    reader is a class for reading data from Neuralynx files.
-		This IO supports NCS, NEV, NSE and NTT file formats.
 	
-		* NCS contains signals for one channel
-		* NEV contains events
-		* NSE contains spikes and waveforms for mono electrodes
-		* NTT contains spikes and waveforms for tetrodes
-		"""
-
-		# Set up channels
-		electrode_groups = {}
-		for chl in reader.header['spike_channels']:
-			electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
-			channel_info = re.search(electrode_matching, chl[0]).groupdict()
-			electrode_group_nr = channel_info['electrode_group']
-			signal_channel = channel_info['signal_channel']
-			electrode_group_name = f'electrode{electrode_group_nr}'
-			if signal_channel not in electrode_groups.keys():
-				electrode_groups[signal_channel] = electrode_group_name
-			if electrode_group_name not in nwbfile.electrode_groups: # make tetrode if does not exist
-				if debug:
-					print('Adding Electrode Group: {}'.format(electrode_group_name))
-				description = electrode_group_name
-				# # Pending inclusion of ExpKeys data, empty string location for the time being:
-				# location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
-				# 	'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
-				location_full = ''
-				electrode_group = nwbfile.create_electrode_group(electrode_group_name,
-						description=description,
-						location=location_full,
-						device=device,
-						)
-		if debug:
-			print('\nDetected the following electrode groups:\n{}'.format(nwbfile.electrode_groups))
-
-		for chl in reader.header['signal_channels']:
-			channel_nr = chl[1]
-			electrode_group = electrode_groups[channel_nr]
-			# add channel to tetrode
-			# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
-			# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
-			# This had a higher indent level in the original script, appears that might have been as mistake.
-			if debug:
-				print('Adding Signal Channel: {}'.format(channel_nr))
-			nwbfile.add_electrode(
-				id=int(channel_nr),
-				x=-1.2,
-				y=2.,
-				z=-1.5,
-				location='target',
-				filtering='none',
-				imp = 0.0,
-				group=nwbfile.electrode_groups[electrode_group],
-				)
-
-		return nwbfile 
-	
-	nwbfile = _setup_channels(reader)
+	nwbfile = _setup_channels(reader, nwbfile, device, debug=debug)
 	# This doesn't list the signal channels for some reason
 	#if debug:
 	#	print('Detected the following channels: {}'.format(nwbfile.electrodes))
