@@ -355,12 +355,10 @@ def reposit_data(
 
 	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
-		# TT is part of the name, so matching should be ch..#..#?
-		electrode_matching = '^chTT(?P<electrode_group>[0-9]*?)#(?P<signal_channel>[0-9]*?)#.*?$'
-		channel_info = re.search(electrode_matching, chl[0]).groupdict()
-		electrode_group_nr = channel_info['electrode_group']
-		signal_channel = channel_info['signal_channel']
-		tetrode_group_name = 'TT' + electrode_group_nr
+		electrode_matching = '^ch(?P<electrode_group>[a-z,A-Z,0-9]*?)#(?P<channel_nr>[0-9]*?)#.*?$'
+		channel_info = re.search(electrode_matching, chl['name']).groupdict()
+		electrode_group_name = channel_info['electrode_group']
+		channel_nr = int(channel_info['channel_nr'])
 		if debug:
 			print('Detected tetrode {} from header'.format(electrode_group_name))
 
@@ -392,10 +390,10 @@ def reposit_data(
 			print(spk_all[i][0])
 
 			ephys_waveform.create_spike_event_series(tetrode_name,
-													 waveform,
-													 spk_all[i][0],
-													 electrode_table_region,
-													 )
+				waveform,
+				spk_all[i][0],
+				electrode_table_region,
+				)
 
 	nwbfile.add_acquisition(ephys_waveform)
 
