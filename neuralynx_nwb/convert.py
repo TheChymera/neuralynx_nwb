@@ -340,11 +340,12 @@ def reposit_data(
 	electrode_table_region = nwbfile.create_electrode_table_region(chl_list, 'CSC order for time series')
 
 	ephys_ts = ElectricalSeries('CSC data',
-								csc_all_mag,
-								electrode_table_region,
-								timestamps=csc_all_time,
-								comments='n/a',
-								description='unfiltered CSC data')
+		csc_all_mag,
+		electrode_table_region,
+		timestamps=csc_all_time,
+		comments='n/a',
+		description='unfiltered CSC data',
+		)
 
 	nwbfile.add_acquisition(ephys_ts)
 
