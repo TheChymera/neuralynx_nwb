@@ -313,7 +313,7 @@ def reposit_data(
 				group=nwbfile.electrode_groups[electrode_group],
 				)
 
-			return nwbfile 
+		return nwbfile 
 	
 	nwbfile = _setup_channels(reader)
 	# This doesn't list the signal channels for some reason
