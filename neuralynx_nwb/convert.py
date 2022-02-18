@@ -6,7 +6,6 @@ from datetime import datetime
 from dateutil.tz import tzlocal
 from os import path, listdir
 
-import neo
 import pynwb
 from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
@@ -16,6 +15,7 @@ from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
 	# create multiple readers, pending resolution of:
 	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	import neo
 	
 	print('Reading from: {}'.format(session_dir))
 	
