@@ -16,6 +16,9 @@ from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
 	# create multiple readers, pending resolution of:
 	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	
+	print('Reading from: {}'.format(session_dir))
+	
 	files_dict = {}
 	for i_file in listdir(session_dir):
 		try:
@@ -209,7 +212,6 @@ def reposit_data(
 
 	readers = _create_neuralynx_group_readers(session_dir, debug=debug, keep_original_times=keep_original_times)
 
-	print('Reading from: {}'.format(session_dir))
 	filename_metadata = re.match(
 		'(?P<subject_id>[A-Za-z0-9]*)-(?P<date>20..-..-..)$',
 		path.basename(session_dir),
