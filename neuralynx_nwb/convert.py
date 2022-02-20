@@ -12,7 +12,6 @@ from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
-
 def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
 	# create multiple readers, pending resolution of:
 	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
@@ -65,10 +64,10 @@ def _read_data_segments(reader, debug=False):
 
 	Returns : 
 		* spk_all : read in spike data  
-		* wv_all
-		* csc_all_mag
-		* csc_all_times 
-		* beh_all
+		* wv_all : waveform data 
+		* csc_all_mag : continuous data traces magnitudes 
+		* csc_all_time : continues data traces times 
+		* beh_all : event times 
 	"""
 
 	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
@@ -77,7 +76,7 @@ def _read_data_segments(reader, debug=False):
 	spk_all = []
 	wv_all = []
 	csc_all_mag = []
-	csc_all_time = [];
+	csc_all_time = []
 	beh_all = []
 
 	# wv and spk might need to be parsed from another reader (check shapes printed at the end).
@@ -120,7 +119,7 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 
 	Parameters : class (reader)
 
-    reader is a class for reading data from Neuralynx files.
+	reader is a class for reading data from Neuralynx files.
 	This IO supports NCS, NEV, NSE and NTT file formats.
 
 	* NCS contains signals for one channel
@@ -128,7 +127,6 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 	* NSE contains spikes and waveforms for mono electrodes
 	* NTT contains spikes and waveforms for tetrodes
 	"""
-
 	# Set up channels
 	electrode_groups = {}
 	for chl in reader.header['spike_channels']:
@@ -353,7 +351,9 @@ def reposit_data(
 	# Add spike data from .ntt files
 	ephys_waveform = EventWaveform()
 
-	# print(reader.header)
+	# TODO: Run the following set of code and collect appropriate nwb information. 
+
+	print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
 		electrode_matching = '^ch(?P<electrode_group>[a-z,A-Z,0-9]*?)#(?P<channel_nr>[0-9]*?)#.*?$'
 		channel_info = re.search(electrode_matching, chl['name']).groupdict()
@@ -443,3 +443,4 @@ def reposit_data(
 		control='TODO',
 		control_description='TODO',
 		)
+
