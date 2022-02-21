@@ -11,9 +11,35 @@ from pynwb import NWBFile
 from pynwb.ogen import OptogeneticStimulusSite, OptogeneticSeries
 from ndx_optogenetics import OpticFiberImplant, OrthogonalStereotacticTarget
 
+
 def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_times=False):
-	# create multiple readers, pending resolution of:
-	# https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	"""
+	Create reader objects for different section structures.
+
+	Parameters
+	----------
+	sessions_dir : str
+		Session directory for the data in which to construct readers.
+	debug : bool, optional
+		Whether to print debugging output to the console.
+	keep_original_times : bool, optional
+		Whether to keep the original times of the data arrays, this argument is passed to `neo.io.NeuralynxIO()`
+
+	Returns
+	-------
+	readers : dict containing keys which are strings and values which are `neo.io.NeuralynxIO` objects
+		Thie `neo.io.NeuralynxIO` objects in this class support NCS, NEV, NSE and NTT file formats.
+			* NCS contains signals for one channel
+			* NEV contains events
+			* NSE contains spikes and waveforms for mono electrodes
+			* NTT contains spikes and waveforms for tetrodes
+	
+	Notes
+	-----
+	This function may become deprecated pending resolution of:
+		https://github.com/NeuralEnsemble/python-neo/issues/1042#issuecomment-957297763
+	"""
+
 	import neo
 	
 	print('Reading from: {}'.format(session_dir))
@@ -55,22 +81,21 @@ def _read_data_segments(reader, debug=False):
 	"""
 	Return NumPy arrays with data segments from a `neo.io.NeuraLynxIO` reader object.
 
-	Parameters : class (reader)
+	Parameters
+	----------
+	reader : neo.io.NeuralynxIO
+		Reader object for which to read data segments
+	debug : bool, optional
+		Whether to print debugging output to the console.
 
-	    reader is a class for reading data from Neuralynx files.
-		This IO supports NCS, NEV, NSE and NTT file formats.
-	
-		* NCS contains signals for one channel
-		* NEV contains events
-		* NSE contains spikes and waveforms for mono electrodes
-		* NTT contains spikes and waveforms for tetrodes
-
-	Returns : 
-		* spk_all : read in spike data  
-		* wv_all : waveform data 
-		* csc_all_mag : continuous data traces magnitudes 
-		* csc_all_time : continues data traces times 
-		* beh_all : event times 
+	Returns
+	-------
+	spk_all : numpy.array 
+		read in spike data
+	wv_all
+	csc_all_mag
+	csc_all_times 
+	beh_all
 	"""
 
 	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
@@ -79,7 +104,7 @@ def _read_data_segments(reader, debug=False):
 	spk_all = []
 	wv_all = []
 	csc_all_mag = []
-	csc_all_time = []
+	csc_all_time = [];
 	beh_all = []
 
 	# wv and spk might need to be parsed from another reader (check shapes printed at the end).
@@ -121,15 +146,8 @@ def _setup_channels(reader, nwbfile, device, debug=False):
 	and debugging information if in debug mode).
 
 	Parameters : class (reader)
-
-	reader is a class for reading data from Neuralynx files.
-	This IO supports NCS, NEV, NSE and NTT file formats.
-
-	* NCS contains signals for one channel
-	* NEV contains events
-	* NSE contains spikes and waveforms for mono electrodes
-	* NTT contains spikes and waveforms for tetrodes
 	"""
+
 	# Set up channels
 	electrode_groups = {}
 	for chl in reader.header['spike_channels']:
@@ -353,9 +371,7 @@ def reposit_data(
 	# Add spike data from .ntt files
 	ephys_waveform = EventWaveform()
 
-	# TODO: Run the following set of code and collect appropriate nwb information. 
-
-	print(reader.header)
+	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
 		electrode_matching = '^ch(?P<electrode_group>[a-z,A-Z,0-9]*?)#(?P<channel_nr>[0-9]*?)#.*?$'
 		channel_info = re.search(electrode_matching, chl['name']).groupdict()
@@ -445,4 +461,3 @@ def reposit_data(
 		control='TODO',
 		control_description='TODO',
 		)
-
