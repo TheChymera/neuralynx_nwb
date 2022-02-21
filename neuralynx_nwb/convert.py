@@ -380,7 +380,7 @@ def reposit_data(
 		if debug:
 			print('Detected tetrode {} from header'.format(electrode_group_name))
 
-		# It should be in since we just created them based on the selfsame strings.   
+		# It should be in since we just created them based on the selfsame strings.
 		#if electrode_group_nr not in ephys_waveform.spike_event_series: # make tetrode if does not exist
 		#	print('Adding Tetrode: {}'.format(tetrode_name))
 		#	chl_list = []
