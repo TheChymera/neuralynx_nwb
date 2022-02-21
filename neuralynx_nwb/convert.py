@@ -90,12 +90,12 @@ def _read_data_segments(reader, debug=False):
 
 	Returns
 	-------
-	spk_all : numpy.array 
-		read in spike data
-	wv_all
-	csc_all_mag
-	csc_all_times 
-	beh_all
+	spk_all : numpy.array
+		Spike data.
+	wv_all : numpy.array
+	csc_all_mag : numpy.array
+	csc_all_times : numpy.array
+	beh_all : numpy.array
 	"""
 
 	# reader at this point needs to be CSC, e.g. `reader = readers['CSC']`
@@ -200,7 +200,6 @@ def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
 		# add channel to tetrode
 		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
 		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
-		# This had a higher indent level in the original script, appears that might have been as mistake.
 		if debug:
 			print('Adding Signal Channel: {}'.format(channel_nr))
 		nwbfile.add_electrode(
@@ -390,17 +389,18 @@ def reposit_data(
 	# Add spike data from .ntt files
 	ephys_waveform = EventWaveform()
 
-	# print(reader.header)
 	for i, chl in enumerate(reader.header['spike_channels']):
 		electrode_matching = '^ch(?P<electrode_group>[a-z,A-Z,0-9]*?)#(?P<channel_nr>[0-9]*?)#.*?$'
 		channel_info = re.search(electrode_matching, chl['name']).groupdict()
-		electrode_group_name = channel_info['electrode_group']
-		channel_nr = int(channel_info['channel_nr'])
+		spike_channel_name = f'{channel_info["electrode_group"]}_{channel_info["channel_nr"]}'
 		if debug:
-			print('Detected tetrode {} from header'.format(electrode_group_name))
+			print('Detected spike channel {} from header'.format(spike_channel_name))
 
-		# It should be in since we just created them based on the selfsame strings.
-		#if electrode_group_nr not in ephys_waveform.spike_event_series: # make tetrode if does not exist
+		# For multiple values after the last hash, only the first is considered.
+		# This may be incorrect for general-purpose applications.
+		if spike_channel_name in ephys_waveform.spike_event_series:
+			continue
+		# make tetrode if does not exist
 		#	print('Adding Tetrode: {}'.format(tetrode_name))
 		#	chl_list = []
 		#	for j, group in enumerate(nwbfile.electrodes['group']):
@@ -409,26 +409,21 @@ def reposit_data(
 			
 		#electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
 		waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
-		print("waveform shape", np.shape(waveform))
-		print("reader header nb_segment", reader.header['nb_segment'])
-		print("reader header nb_segment [0]", reader.header['nb_segment'][0])
-		for s in range(reader.header['nb_segment'][0]):
-			print('s = {}, i = {}'.format(s,i))
-			if s == 0:
-				# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-				#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
-				#waveform = reader.get_spike_raw_waveforms(seg_index=s)
-				waveform = reader.get_spike_raw_waveforms(s, i)
-			else:
-				# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-				#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
-				#waveform = reader.get_spike_raw_waveforms(seg_index=s)
-				waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
-		print(np.shape(spk_all[i][0]))
-		print(spk_all[i])
-		print(spk_all[i][0])
-
-		ephys_waveform.create_spike_event_series(electrode_group_name,
+		#for s in range(reader.header['nb_segment'][0]):
+		#	print('s = {}, i = {}'.format(s,i))
+		#	if s == 0:
+		#		# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+		#		#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
+		#		#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+		#		#waveform = reader.get_spike_raw_waveforms(s, i)
+		#		waveform = reader.get_spike_raw_waveforms(s, i)
+		#	else:
+		#		# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+		#		#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
+		#		#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+		#		#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
+		#		waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
+		ephys_waveform.create_spike_event_series(spike_channel_name,
 			waveform,
 			spk_all[i][0],
 			electrode_table_region,
@@ -437,8 +432,8 @@ def reposit_data(
 	nwbfile.add_acquisition(ephys_waveform)
 
 
-	# nwbfile.add_unit(id=1, electrodes=[0])
-	# nwbfile.add_unit(id=2, electrodes=[0])
+	nwbfile.add_unit(id=1, electrodes=[0])
+	nwbfile.add_unit(id=2, electrodes=[0])
 
 	# add .evt file
 
