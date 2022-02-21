@@ -139,14 +139,35 @@ def _read_data_segments(reader, debug=False):
 	
 	return spk_all, wv_all, csc_all_mag, csc_all_time, beh_all
 
-def _setup_channels(reader, nwbfile, device, debug=False):
+def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
 	"""
-	Set up the channels for the experiment by searching through each ch in the reader class
-	and check for appropriate information (signal channel information as well as electrode group names
-	and debugging information if in debug mode).
+	Add electrode groups and continuous signal channels to `pynwb.NWBFile` object while determining the correct assignment.
 
-	Parameters : class (reader)
+	Parameters
+	----------
+	reader : neo.io.NeuralynxIO
+		Reader object covering continuous signal channels ("ncs" extension always, "CSC" prefix as per Manish convention) and spike channels ("ntt" extension always, "TT" prefix as per Manish convention).
+	nwbfile : pynwb.NWBFile
+		NWB file to which to add metadata.
+	device_name : str, optional
+		Name of the device which to assign to the channels.
+		This parameter is not considered if the nwbfile passed only contains one device.
+	debug : bool, optional
+		Whether to print debugging output to the console.
+
+	Returns
+	-------
+	pynwb.NWBfile
+		NWB file object with added electrodes and electrode groups.
 	"""
+
+	# Assign device
+	if len(nwbfile.devices.keys()) == 1:
+		device = list(nwbfile.devices.values())[0]
+	elif isinstance(device_name, str):
+		device = nwbfile.devices[device_name]
+	else:
+		raise ValueError('Please specify a string `device name` parameter to `_setup_electrodes()`.')
 
 	# Set up channels
 	electrode_groups = {}
@@ -328,12 +349,10 @@ def reposit_data(
 
 	# Add electrode metadata
 	# Create probe device
-	device = nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
+	nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
 	reader = readers['CSC']
-
-	
-	nwbfile = _setup_channels(reader, nwbfile, device, debug=debug)
+	nwbfile = _setup_electrodes(reader, nwbfile, debug=debug)
 	# This doesn't list the signal channels for some reason
 	#if debug:
 	#	print('Detected the following channels: {}'.format(nwbfile.electrodes))
@@ -390,6 +409,9 @@ def reposit_data(
 			
 		#electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
 		waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
+		print("waveform shape", np.shape(waveform))
+		print("reader header nb_segment", reader.header['nb_segment'])
+		print("reader header nb_segment [0]", reader.header['nb_segment'][0])
 		for s in range(reader.header['nb_segment'][0]):
 			print('s = {}, i = {}'.format(s,i))
 			if s == 0:
@@ -402,7 +424,6 @@ def reposit_data(
 				#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
 				#waveform = reader.get_spike_raw_waveforms(seg_index=s)
 				waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
-		print(np.shape(waveform))
 		print(np.shape(spk_all[i][0]))
 		print(spk_all[i])
 		print(spk_all[i][0])
