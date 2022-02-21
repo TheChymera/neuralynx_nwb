@@ -388,30 +388,30 @@ def reposit_data(
 		#		if tetrode in nwbfile.electrodes['group'][j].fields['description']:
 		#			chl_list.append(j)
 			
-			electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
-			waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
-			'''for s in range(reader.header['nb_segment'][0]):
-				print('s = {}, i = {}'.format(s,i))
-				if s == 0:
-					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-					#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
-					#waveform = reader.get_spike_raw_waveforms(seg_index=s)
-					waveform = reader.get_spike_raw_waveforms(s, i)
-				else:
-					# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
-					#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
-					#waveform = reader.get_spike_raw_waveforms(seg_index=s)
-					waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])'''
-			print(np.shape(waveform))
-			print(np.shape(spk_all[i][0]))
-			print(spk_all[i])
-			print(spk_all[i][0])
+		#electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
+		waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
+		for s in range(reader.header['nb_segment'][0]):
+			print('s = {}, i = {}'.format(s,i))
+			if s == 0:
+				# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+				#waveform = reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)
+				#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+				waveform = reader.get_spike_raw_waveforms(s, i)
+			else:
+				# Pending: https://github.com/NeuralEnsemble/python-neo/issues/1046
+				#waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(seg_index=s, unit_index=i)])
+				#waveform = reader.get_spike_raw_waveforms(seg_index=s)
+				waveform = np.vstack([waveform,reader.get_spike_raw_waveforms(s, i)])
+		print(np.shape(waveform))
+		print(np.shape(spk_all[i][0]))
+		print(spk_all[i])
+		print(spk_all[i][0])
 
-			ephys_waveform.create_spike_event_series(tetrode_name,
-				waveform,
-				spk_all[i][0],
-				electrode_table_region,
-				)
+		ephys_waveform.create_spike_event_series(electrode_group_name,
+			waveform,
+			spk_all[i][0],
+			electrode_table_region,
+			)
 
 	nwbfile.add_acquisition(ephys_waveform)
 
