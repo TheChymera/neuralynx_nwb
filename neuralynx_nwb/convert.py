@@ -33,7 +33,7 @@ def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_time
 			* NEV contains events
 			* NSE contains spikes and waveforms for mono electrodes
 			* NTT contains spikes and waveforms for tetrodes
-	
+
 	Notes
 	-----
 	This function may become deprecated pending resolution of:
@@ -41,9 +41,9 @@ def _create_neuralynx_group_readers(session_dir, debug=False, keep_original_time
 	"""
 
 	import neo
-	
+
 	print('Reading from: {}'.format(session_dir))
-	
+
 	files_dict = {}
 	for i_file in listdir(session_dir):
 		try:
@@ -113,20 +113,15 @@ def _read_data_segments(reader, debug=False):
 		if s == 0:
 			for i, chl in enumerate(seg[0].segments[s].spiketrains):
 				spk_all.append([seg[0].segments[s].spiketrains[i].times])
-				
 			csc_all_mag = seg[0].segments[s].analogsignals[0].magnitude
 			csc_all_time = seg[0].segments[s].analogsignals[0].times
-			
 			for i, chl in enumerate(seg[0].segments[s].events):
 				beh_all.append([seg[0].segments[s].events[i].times])
-				
 		else:
 			for i, chl in enumerate(seg[0].segments[s].spiketrains):
 				spk_all[i] = np.append(spk_all[i],[seg[0].segments[s].spiketrains[i].times])
-				
 			csc_all_mag = np.vstack([csc_all_mag,seg[0].segments[s].analogsignals[0].magnitude])
 			csc_all_time = np.append(csc_all_time,seg[0].segments[s].analogsignals[0].times)
-			
 			for i, chl in enumerate(seg[0].segments[s].events):
 				beh_all[i] = np.append(beh_all[i],seg[0].segments[s].events[i].times)
 
@@ -136,7 +131,7 @@ def _read_data_segments(reader, debug=False):
 		print(f"csc_all_mag shape: {np.shape(csc_all_mag)}")
 		print(f"csc_all_time shape: {np.shape(csc_all_time)}")
 		print(f"beh_all shape: {np.shape(beh_all)}")
-	
+
 	return spk_all, wv_all, csc_all_mag, csc_all_time, beh_all
 
 def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
@@ -229,6 +224,7 @@ def reposit_data(
 	debug=True,
 	session_description='Extracellular ephys recording in the ventral Striatum',
 	keep_original_times=True,
+	output_filename='neuralynx_nwb_testfile',
 	):
 
 	data_dir = path.abspath(path.expanduser(data_dir))
@@ -283,10 +279,10 @@ def reposit_data(
 	#  			metadata_keys[field] = re.sub('[^A-Za-z0-9]+', '', metadata_keys[field])
 	#  			if debug:
 	#  				print(metadata_keys[field])
-	#  			
+	#
 	#  ## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
 	#  ## add filtering, individual tetrode depth, tetrode referencing
-	
+
 	# Metadata which is likely to come from data files and "promotion" metadata records
 	# Most likely many could be parsed from the filenames which are likely to encode some of it
 	# So "heuristical" converter could establish metadata harvesting from the filenames
@@ -331,7 +327,7 @@ def reposit_data(
 		print(subject_metadata)
 
 	# TODO add event labels to metadata
-	
+
 	# Such NWBFile will be created for each separate file, and then fill up with the corresponding data
 	filename_suffix = "TODO"
 	nwbfile = NWBFile(
@@ -372,7 +368,7 @@ def reposit_data(
 		# reference by identifier and not by numbered index in the electrode listing as well
 		channel_nr = int(chl['id'])
 		chl_list.append(nwbfile.electrodes['id'][:].index(channel_nr))
-		
+
 	electrode_table_region = nwbfile.create_electrode_table_region(chl_list, 'CSC order for time series')
 
 	ephys_ts = ElectricalSeries('CSC data',
@@ -406,7 +402,7 @@ def reposit_data(
 		#	for j, group in enumerate(nwbfile.electrodes['group']):
 		#		if tetrode in nwbfile.electrodes['group'][j].fields['description']:
 		#			chl_list.append(j)
-			
+
 		#electrode_table_region = nwbfile.create_electrode_table_region(chl_list, tetrode_name)
 		waveform = reader.get_spike_raw_waveforms(spike_channel_index=i)
 		#for s in range(reader.header['nb_segment'][0]):
@@ -432,48 +428,49 @@ def reposit_data(
 	nwbfile.add_acquisition(ephys_waveform)
 
 
-	nwbfile.add_unit(id=1, electrodes=[0])
-	nwbfile.add_unit(id=2, electrodes=[0])
+	# Behaviour — todo!
+	#nwbfile.add_unit(id=1, electrodes=[0])
+	#nwbfile.add_unit(id=2, electrodes=[0])
 
-	# add .evt file
+	## add .evt file
 
-	beh_ts = BehavioralTimeSeries()
+	#beh_ts = BehavioralTimeSeries()
 
-	# loop through events
-	for i, chl in enumerate(reader.header['event_channels']):
-			
-		beh_ts.create_timeseries(str(chl),
-									timestamps = beh_all[i])
+	## loop through events
+	#for i, chl in enumerate(reader.header['event_channels']):
+	#
+	#	beh_ts.create_timeseries(str(chl),
+	#								timestamps = beh_all[i])
 
-	nwbfile.add_acquisition(beh_ts)
-	
-	# Save the generated file
+	#nwbfile.add_acquisition(beh_ts)
+
+	#Save the generated file
 	from pynwb import NWBHDF5IO
 
 	# TODO: I think we should right away use dandi-cli provided API to create the filename based on metadata
 	# in the NWBFile
-	with NWBHDF5IO('BCD_example.nwb', 'w') as io:
+	with NWBHDF5IO(f'{output_filename}.nwb', 'w') as io:
 		io.write(nwbfile)
 
 	# Optogenetic Stimulation:
-	ogs_site = OptogeneticStimulusSite(
-		name='TODO',
-		device='TODO',
-		description='TODO',
-		excitation_lambda='TODO',
-		location='TODO',
-		)
-	ogs_series = OptogeneticSeries(
-		name='TODO',
-		data='TODO',
-		site=ogs_site,
-		resolution='TODO',
-		conversion='TODO',
-		timestampe='TODO',
-		starting_time='TODO',
-		rate='TODO',
-		comments='TODO',
-		description='TODO',
-		control='TODO',
-		control_description='TODO',
-		)
+	#ogs_site = OptogeneticStimulusSite(
+	#	name='TODO',
+	#	device='TODO',
+	#	description='TODO',
+	#	excitation_lambda='TODO',
+	#	location='TODO',
+	#	)
+	#ogs_series = OptogeneticSeries(
+	#	name='TODO',
+	#	data='TODO',
+	#	site=ogs_site,
+	#	resolution='TODO',
+	#	conversion='TODO',
+	#	timestampe='TODO',
+	#	starting_time='TODO',
+	#	rate='TODO',
+	#	comments='TODO',
+	#	description='TODO',
+	#	control='TODO',
+	#	control_description='TODO',
+	#	)
