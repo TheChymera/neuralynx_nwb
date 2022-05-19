@@ -134,7 +134,11 @@ def _read_data_segments(reader, debug=False):
 
 	return spk_all, wv_all, csc_all_mag, csc_all_time, beh_all
 
-def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
+def _setup_electrodes(reader, nwbfile,
+	debug=False,
+	device_name=None,
+	metadata_keys=None,
+	):
 	"""
 	Add electrode groups and continuous signal channels to `pynwb.NWBFile` object while determining the correct assignment.
 
@@ -163,6 +167,15 @@ def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
 		device = nwbfile.devices[device_name]
 	else:
 		raise ValueError('Please specify a string `device name` parameter to `_setup_electrodes()`.')
+			
+	if metadata_keys:
+		location = metadata_keys['ExpKeys.target']
+		location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + '(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
+		y = float(metadata_keys['ExpKeys.probeDepth'])
+	else:
+		location = ''
+		location_full = ''
+		y = 0.0
 
 	# Set up channels
 	electrode_groups = {}
@@ -177,10 +190,6 @@ def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
 			if debug:
 				print('Adding Electrode Group: {}'.format(electrode_group_name))
 			description = electrode_group_name
-			# # Pending inclusion of ExpKeys data, empty string location for the time being:
-			# location_full = metadata_keys['ExpKeys.hemisphere'] + ' ' + metadata_keys['ExpKeys.target'] + ' ' + \
-			# 	'(' + metadata_keys['ExpKeys.probeDepth'] + ' um)'
-			location_full = ''
 			electrode_group = nwbfile.create_electrode_group(electrode_group_name,
 					description=description,
 					location=location_full,
@@ -192,17 +201,15 @@ def _setup_electrodes(reader, nwbfile, device_name=None, debug=False):
 	for channel_nr in reader.header['signal_channels']['id']:
 		channel_nr = int(channel_nr)
 		electrode_group_name = electrode_groups[channel_nr]
-		# add channel to tetrode
-		# All of these fields should ideally be fetched from ExpKeys fields, and not hard-coded here.
-		# Format would be, e.g. `y=float(metadata_keys['ExpKeys.probeDepth'])` or `location=metadata_keys['ExpKeys.target']`
 		if debug:
 			print('Adding Signal Channel: {}'.format(channel_nr))
+		## Add from metadata: x,z
 		nwbfile.add_electrode(
 			id=channel_nr,
 			x=-1.2,
-			y=2.,
+			y=y,
 			z=-1.5,
-			location='target',
+			location=location,
 			filtering='none',
 			imp = 0.0,
 			group=nwbfile.electrode_groups[electrode_group_name],
@@ -260,28 +267,31 @@ def reposit_data(
 	# Scans through Experimental Keys to extract relevant metadata for NWB file
 
 	## name of ExpKeys file
-	keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
-	keys_path = path.join(session_dir,keys_filename)
+	#keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
+	keys_path = path.join(session_dir,'Expkeys.m')
 
-	#  ## read session ExpKeys
-	#  with open (keys_path, 'rt') as keys_file:
-	#  	exp_keys = keys_file.read()
+	## read session ExpKeys
+	with open (keys_path, 'rt') as keys_file:
+		exp_keys = keys_file.read()
 
 	## list of metadata to extract and initialize dictionary
 	metadata_list = ['ExpKeys.species','ExpKeys.hemisphere','ExpKeys.weight','ExpKeys.probeDepth','ExpKeys.target']
 	metadata_keys = dict.fromkeys(metadata_list)
 
-	#  ## extract metadata
-	#  for item in exp_keys.split("\n"):
-	#  	for field in metadata_list:
-	#  		if field in item:
-	#  			metadata_keys[field] = re.search('(?<=\=)(.*?)(?=\;)', item).group(0).strip() 
-	#  			metadata_keys[field] = re.sub('[^A-Za-z0-9]+', '', metadata_keys[field])
-	#  			if debug:
-	#  				print(metadata_keys[field])
-	#
-	#  ## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
-	#  ## add filtering, individual tetrode depth, tetrode referencing
+	## extract metadata
+	for item in exp_keys.split("\n"):
+		for field in metadata_list:
+			if field in item:
+				metadata_keys[field] = re.search('(?<=\=)(.*?)(?=\;)', item).group(0).strip() 
+				metadata_keys[field] = re.sub('[^A-Za-z0-9]+', '', metadata_keys[field])
+				if debug:
+					print(f"Found expected {field} with value {metadata_keys[field]}.")
+	
+	if debug:
+		print('Acquired the following metadata from file input: {}'.format(metadata_keys))
+	
+	## TODO: add surgery details to ExpKeys, including AP and ML coordinates, change probeDepth to mm,
+	## add filtering, individual tetrode depth, tetrode referencing
 
 	# Metadata which is likely to come from data files and "promotion" metadata records
 	# Most likely many could be parsed from the filenames which are likely to encode some of it
@@ -299,11 +309,13 @@ def reposit_data(
 		age="TODO",  # duplicate with session_start_time and date_of_birth but why not?
 		species=metadata_keys['ExpKeys.species'],
 		sex="female",
-	#	 hemisphere=metadata_keys['ExpKeys.hemisphere'],
-	#	 depth=metadata_keys['ExpKeys.probeDepth'],
-	#	 region=metadata_keys['ExpKeys.target'],
 		date_of_birth=datetime.now(tzlocal()), # TEMP: TODO
 	)
+	### The following metadata keys, later passed to `pynwb.file.Subject()` were used previously but now seem to no longer be supported:
+	### (hemisphere certainly with good reason)
+	#	hemisphere=metadata_keys['ExpKeys.hemisphere'],
+	#	depth=metadata_keys['ExpKeys.probeDepth'],
+	#	region=metadata_keys['ExpKeys.target'],
 	surgery_metadata = dict(
 		surgery="Headbar on xx/xx/2020, craniotomy over right hemisphere on xx/xx/2020, craniotomy over left hemisphere on xx/xx/2020. All surgeries performed by JG."
 	)
@@ -347,7 +359,10 @@ def reposit_data(
 	nwbfile.create_device(name='silicon probe', description='A4x2-tet-5mm-150-200-121', manufacturer='NeuroNexus')
 
 	reader = readers['CSC']
-	nwbfile = _setup_electrodes(reader, nwbfile, debug=debug)
+	nwbfile = _setup_electrodes(reader, nwbfile,
+			debug=debug,
+			metadata_keys=metadata_keys,
+			)
 	# This doesn't list the signal channels for some reason
 	#if debug:
 	#	print('Detected the following channels: {}'.format(nwbfile.electrodes))
