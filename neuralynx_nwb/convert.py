@@ -267,8 +267,9 @@ def reposit_data(
 	# Scans through Experimental Keys to extract relevant metadata for NWB file
 
 	## name of ExpKeys file
-	#keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
-	keys_path = path.join(session_dir,'Expkeys.m')
+	keys_filename = filename_metadata['subject_id'] + '_' + filename_metadata['date'].replace('-','_') + '_keys.m'
+	keys_path = path.join(session_dir,keys_filename)
+	#keys_path = path.join(session_dir,'Expkeys.m')
 
 	## read session ExpKeys
 	with open (keys_path, 'rt') as keys_file:
